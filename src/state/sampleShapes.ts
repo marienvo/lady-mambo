@@ -43,7 +43,7 @@ export const sampleShapes: readonly ShapeMeta[] = [
         { x: 3, y: 3 },
         { x: 4, y: 3 },
       ],
-      pivot: { x: 2, y: 2 },
+      pivot: { x: 2, y: 1 },
     },
   },
   {

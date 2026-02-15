@@ -117,7 +117,10 @@ export function CanvasStage() {
       onMouseMove={(e) => {
         const pos = e.target.getStage()?.getPointerPosition()
         if (!pos) return
-        setHoverAnchor(pointerToCell(pos, cellSize))
+        const pointerCell = pointerToCell(pos, cellSize)
+        const pivot = selectedShape?.pivot ?? { x: 0, y: 0 }
+        // Keep the cursor on the shape's pivot (roughly its center).
+        setHoverAnchor({ x: pointerCell.x - pivot.x, y: pointerCell.y - pivot.y })
       }}
       onMouseLeave={() => setHoverAnchor(null)}
       onClick={() => tryPlaceAtHover()}
