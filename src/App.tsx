@@ -3,7 +3,7 @@ import './styles/app.css'
 import { useEffect } from 'react'
 
 import { useGameStore } from './state/gameStore'
-import { CanvasStage } from './ui/canvas/CanvasStage'
+import { SquareCanvasViewport } from './ui/canvas/SquareCanvasViewport'
 
 export function App() {
   const shapeMetaById = useGameStore((s) => s.shapeMetaById)
@@ -32,10 +32,8 @@ export function App() {
       </header>
 
       <main className="appMain">
-        <aside className="panel">
-          <h2 className="panelTitle">Tools</h2>
-
-          <label className="field">
+        <section className="toolsBar">
+          <label className="field fieldInline">
             <span className="fieldLabel">Shape</span>
             <select
               className="fieldControl"
@@ -63,16 +61,15 @@ export function App() {
             </button>
           </div>
 
-          <div className="hint">
-            <p>
-              Move mouse to snap the ghost. Click to place. Out-of-bounds is always
-              invalid.
-            </p>
+          <div className="hint hintInline">
+            <p>Move mouse to snap. Click to place. Out-of-bounds is always invalid.</p>
           </div>
-        </aside>
+        </section>
 
         <section className="canvasPanel">
-          <CanvasStage />
+          <div className="canvasViewport">
+            <SquareCanvasViewport />
+          </div>
         </section>
       </main>
     </div>

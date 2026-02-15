@@ -1,7 +1,9 @@
 .app {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-rows: auto 1fr;
+  overflow: hidden;
 }
 
 .appHeader {
@@ -21,16 +23,19 @@
 
 .appMain {
   padding: 16px;
-  display: grid;
-  grid-template-columns: 280px 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: start;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.panel {
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
+.toolsBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  min-width: 0;
 }
 
 .panelTitle {
@@ -43,6 +48,10 @@
   display: grid;
   gap: 6px;
   margin-bottom: 12px;
+}
+
+.fieldInline {
+  margin-bottom: 0;
 }
 
 .fieldLabel {
@@ -81,11 +90,27 @@
   padding: 16px;
   border-radius: 12px;
   border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
-  overflow: auto;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  min-width: 0;
+}
+
+.canvasViewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
 }
 
 .hint {
-  margin-top: 12px;
   font-size: 12px;
   opacity: 0.8;
+}
+
+.hintInline {
+  margin-left: auto;
 }

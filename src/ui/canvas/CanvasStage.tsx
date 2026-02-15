@@ -1,4 +1,4 @@
-import { Layer, Line, Rect, Stage } from 'react-konva'
+import { Group, Layer, Line, Rect, Stage } from 'react-konva'
 
 import { occupiedKeysForPlacements } from '../../domain/occupied'
 import { absoluteCells, canPlace } from '../../domain/placement'
@@ -72,9 +72,8 @@ function CellRects({
   })
 }
 
-export function CanvasStage() {
+export function CanvasStage({ stageSize }: { stageSize: number }) {
   const grid = useGameStore((s) => s.grid)
-  const cellSize = useGameStore((s) => s.cellSize)
 
   const shapesById = useGameStore((s) => s.shapesById)
   const shapeMetaById = useGameStore((s) => s.shapeMetaById)
@@ -87,8 +86,11 @@ export function CanvasStage() {
   const setHoverAnchor = useGameStore((s) => s.setHoverAnchor)
   const tryPlaceAtHover = useGameStore((s) => s.tryPlaceAtHover)
 
-  const stageWidth = grid.width * cellSize
-  const stageHeight = grid.height * cellSize
+  const cellSize = Math.max(1, Math.floor(stageSize / Math.max(grid.width, grid.height)))
+  const gridPxW = grid.width * cellSize
+  const gridPxH = grid.height * cellSize
+  const offsetX = Math.floor((stageSize - gridPxW) / 2)
+  const offsetY = Math.floor((stageSize - gridPxH) / 2)
 
   const placementsForDomain: Placement[] = placements.map((p) => ({
     shapeId: p.shapeId,
@@ -112,12 +114,12 @@ export function CanvasStage() {
 
   return (
     <Stage
-      width={stageWidth}
-      height={stageHeight}
+      width={stageSize}
+      height={stageSize}
       onMouseMove={(e) => {
         const pos = e.target.getStage()?.getPointerPosition()
         if (!pos) return
-        const pointerCell = pointerToCell(pos, cellSize)
+        const pointerCell = pointerToCell(pos, cellSize, offsetX, offsetY)
         const pivot = selectedShape?.pivot ?? { x: 0, y: 0 }
         // Keep the cursor on the shape's pivot (roughly its center).
         setHoverAnchor({ x: pointerCell.x - pivot.x, y: pointerCell.y - pivot.y })
@@ -127,34 +129,40 @@ export function CanvasStage() {
       style={{ background: 'rgba(127,127,127,0.06)', borderRadius: 12 }}
     >
       <Layer>
-        <GridLines width={grid.width} height={grid.height} cellSize={cellSize} />
+        <Group x={offsetX} y={offsetY}>
+          <GridLines width={grid.width} height={grid.height} cellSize={cellSize} />
+        </Group>
       </Layer>
 
       <Layer>
-        {placements.flatMap((p) => {
-          const shape = shapesById[p.shapeId]
-          if (!shape) return []
-          const color = shapeMetaById[p.shapeId]?.color ?? '#2f80ed'
-          return (
+        <Group x={offsetX} y={offsetY}>
+          {placements.flatMap((p) => {
+            const shape = shapesById[p.shapeId]
+            if (!shape) return []
+            const color = shapeMetaById[p.shapeId]?.color ?? '#2f80ed'
+            return (
+              <CellRects
+                key={p.id}
+                cells={absoluteCells(shape, p)}
+                cellSize={cellSize}
+                fill={color}
+              />
+            )
+          })}
+        </Group>
+      </Layer>
+
+      <Layer>
+        <Group x={offsetX} y={offsetY}>
+          {ghost ? (
             <CellRects
-              key={p.id}
-              cells={absoluteCells(shape, p)}
+              cells={ghost.cells}
               cellSize={cellSize}
-              fill={color}
+              fill={ghost.ok ? selectedColor : '#eb5757'}
+              opacity={0.35}
             />
-          )
-        })}
-      </Layer>
-
-      <Layer>
-        {ghost ? (
-          <CellRects
-            cells={ghost.cells}
-            cellSize={cellSize}
-            fill={ghost.ok ? selectedColor : '#eb5757'}
-            opacity={0.35}
-          />
-        ) : null}
+          ) : null}
+        </Group>
       </Layer>
     </Stage>
   )

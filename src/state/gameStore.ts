@@ -23,7 +23,6 @@ type ShapeMetaById = Readonly<
 
 type GameState = Readonly<{
   grid: Grid
-  cellSize: number
 
   shapesById: Readonly<Record<string, HouseShape>>
   shapeMetaById: ShapeMetaById
@@ -65,8 +64,7 @@ function normalizeRotation(value: number): Rotation {
 const { shapesById, shapeMetaById } = buildShapes()
 
 export const useGameStore = create<GameState & GameActions>((set) => ({
-  grid: { width: 28, height: 18 },
-  cellSize: 26,
+  grid: { width: 28, height: 28 },
 
   shapesById,
   shapeMetaById,
