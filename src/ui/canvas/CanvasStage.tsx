@@ -1,5 +1,5 @@
 import { Group, Layer, Line, Stage } from 'react-konva'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { occupiedKeysForPlacements } from '../../domain/occupied'
 import { depthKeyForCell, gridToIsoCenter, type IsoMetrics } from '../../domain/isometric'
@@ -392,6 +392,22 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
     return absoluteCells(shape, p)
   }, [moveCandidateAnchor, placements, selectedPlacementId, shapesById])
 
+  const [selectionPulse, setSelectionPulse] = useState(0)
+  useEffect(() => {
+    if (selectedOutlineCells.length === 0) return
+    let raf = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      // Heartbeat-ish pulse: 0..1
+      const t = (now - start) / 1000
+      const s = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * 1.25)
+      setSelectionPulse(s)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [selectedOutlineCells.length])
+
   return (
     <Stage
       width={stageSize}
@@ -483,8 +499,10 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
                 key={`sel-${cell.x},${cell.y}`}
                 points={diamondPoints(cellToScreenIso(cell, metrics), metrics)}
                 closed
-                stroke="rgba(0, 0, 0, 0.55)"
-                strokeWidth={2}
+                fill="rgba(255, 77, 109, 0.12)"
+                opacity={0.35 + 0.55 * selectionPulse}
+                stroke="rgba(255, 77, 109, 0.95)"
+                strokeWidth={3}
               />
             ))}
           </Group>

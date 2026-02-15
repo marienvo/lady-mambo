@@ -58,9 +58,13 @@ export function App() {
               type="button"
               onClick={() => setPlaceEnabled(!placeEnabled)}
               aria-pressed={placeEnabled}
-              title={placeEnabled ? 'Place mode: tap to place' : 'Edit mode: drag buildings to move'}
+              title={
+                placeEnabled
+                  ? 'Place mode: tap/click to place'
+                  : 'Select mode: tap/click to select, drag to move'
+              }
             >
-              Place: {placeEnabled ? 'On' : 'Off'}
+              {placeEnabled ? 'Place mode' : 'Select mode'}
             </button>
             <button className="button" type="button" onClick={() => rotate(90)}>
               Rotate (R) — {rotation}°
