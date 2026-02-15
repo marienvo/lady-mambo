@@ -17,13 +17,33 @@ function rectCells(width: number, height: number): Cell[] {
 
 export const sampleShapes: readonly ShapeMeta[] = [
   {
-    id: 'house_12',
-    name: 'House 12px (4×3)',
-    color: '#2f80ed',
+    id: 'house_14',
+    name: 'House 14px (5×4)',
+    color: '#27ae60',
     shape: {
-      id: 'house_12',
-      cells: rectCells(4, 3), // 12 pixels
-      pivot: { x: 1, y: 1 },
+      id: 'house_14',
+      // Pattern:
+      // __█__
+      // _███_
+      // █████
+      // █████
+      cells: [
+        { x: 2, y: 0 },
+        { x: 1, y: 1 },
+        { x: 2, y: 1 },
+        { x: 3, y: 1 },
+        { x: 0, y: 2 },
+        { x: 1, y: 2 },
+        { x: 2, y: 2 },
+        { x: 3, y: 2 },
+        { x: 4, y: 2 },
+        { x: 0, y: 3 },
+        { x: 1, y: 3 },
+        { x: 2, y: 3 },
+        { x: 3, y: 3 },
+        { x: 4, y: 3 },
+      ],
+      pivot: { x: 2, y: 2 },
     },
   },
   {
@@ -39,6 +59,16 @@ export const sampleShapes: readonly ShapeMeta[] = [
         { x: 1, y: 1 },
       ],
       pivot: { x: 1, y: 0 },
+    },
+  },
+  {
+    id: 'house_12',
+    name: 'House 12px (4×3)',
+    color: '#2f80ed',
+    shape: {
+      id: 'house_12',
+      cells: rectCells(4, 3), // 12 pixels
+      pivot: { x: 1, y: 1 },
     },
   },
 ]
