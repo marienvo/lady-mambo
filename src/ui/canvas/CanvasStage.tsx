@@ -71,14 +71,20 @@ function IsoGrid({
   })
 }
 
-type ColoredCell = Readonly<{ cell: Cell; fill: string }>
+type StyledCell = Readonly<{
+  cell: Cell
+  fill: string
+  columnScale?: number
+  topFill?: string
+  spire?: boolean
+}>
 
 function IsoColumnsColored({
   items,
   metrics,
   opacity,
 }: {
-  items: readonly ColoredCell[]
+  items: readonly StyledCell[]
   metrics: IsoMetrics
   opacity?: number
 }) {
@@ -90,13 +96,14 @@ function IsoColumnsColored({
     return a.cell.y - b.cell.y
   })
 
-  return sorted.flatMap(({ cell, fill }) => {
-    const topFill = fill
+  return sorted.flatMap(({ cell, fill, topFill, columnScale = 1, spire }) => {
+    const realTopFill = topFill ?? fill
     const rightFill = shadeHex(fill, 0.86)
     const leftFill = shadeHex(fill, 0.74)
 
     const base = cellToScreenIso(cell, metrics)
-    const top = { x: base.x, y: base.y - metrics.columnH }
+    const colH = Math.max(0, metrics.columnH * columnScale)
+    const top = { x: base.x, y: base.y - colH }
 
     const halfW = metrics.tileW / 2
     const halfH = metrics.tileH / 2
@@ -157,13 +164,59 @@ function IsoColumnsColored({
         key={`col-top-${cell.x},${cell.y}`}
         points={topPts}
         closed
-        fill={topFill}
+        fill={realTopFill}
         opacity={opacity}
         stroke="rgba(0, 0, 0, 0.18)"
         strokeWidth={1}
       />,
+      spire ? (
+        <Line
+          key={`col-spire-${cell.x},${cell.y}`}
+          points={[
+            top.x,
+            top.y - Math.max(metrics.tileH, colH * 0.6),
+            top.x + halfW * 0.18,
+            top.y,
+            top.x - halfW * 0.18,
+            top.y,
+          ]}
+          closed
+          fill={shadeHex(realTopFill, 1.08)}
+          opacity={opacity}
+          stroke="rgba(0, 0, 0, 0.20)"
+          strokeWidth={1}
+        />
+      ) : null,
     ]
   })
+}
+
+function manhattan(a: Cell, b: Cell): number {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+}
+
+function centroidCell(cells: readonly Cell[]): Readonly<{ x: number; y: number }> {
+  if (cells.length === 0) return { x: 0, y: 0 }
+  const sum = cells.reduce(
+    (acc, c) => ({ x: acc.x + c.x, y: acc.y + c.y }),
+    { x: 0, y: 0 },
+  )
+  return { x: sum.x / cells.length, y: sum.y / cells.length }
+}
+
+function bbox(cells: readonly Cell[]): Readonly<{ minX: number; maxX: number; minY: number; maxY: number }> {
+  if (cells.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0 }
+  let minX = cells[0]!.x
+  let maxX = cells[0]!.x
+  let minY = cells[0]!.y
+  let maxY = cells[0]!.y
+  for (const c of cells) {
+    minX = Math.min(minX, c.x)
+    maxX = Math.max(maxX, c.x)
+    minY = Math.min(minY, c.y)
+    maxY = Math.max(maxY, c.y)
+  }
+  return { minX, maxX, minY, maxY }
 }
 
 export function CanvasStage({ stageSize }: { stageSize: number }) {
@@ -200,7 +253,9 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
   const halfH = metrics.tileH / 2
   const minX = Math.min(...projected.map((p) => p.x)) - halfW
   const maxX = Math.max(...projected.map((p) => p.x)) + halfW
-  const minY = Math.min(...projected.map((p) => p.y)) - halfH - metrics.columnH
+  // We have variable column heights (office/steeple). Keep bounds conservative to avoid clipping.
+  const maxColumnScale = 3
+  const minY = Math.min(...projected.map((p) => p.y)) - halfH - metrics.columnH * maxColumnScale
   const maxY = Math.max(...projected.map((p) => p.y)) + halfH
 
   const boundsW = maxX - minX
@@ -231,11 +286,62 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
       ? canPlace(grid, occupied, selectedShape, hoverPlacement)
       : null
 
-  const placedItems: ColoredCell[] = placements.flatMap((p) => {
+  const placedItems: StyledCell[] = placements.flatMap((p) => {
     const shape = shapesById[p.shapeId]
     if (!shape) return []
     const color = shapeMetaById[p.shapeId]?.color ?? '#2f80ed'
-    return absoluteCells(shape, p).map((cell) => ({ cell, fill: color }))
+    const kind = shapeMetaById[p.shapeId]?.building?.kind
+
+    const cells = absoluteCells(shape, p)
+    const box = bbox(cells)
+    const center = centroidCell(cells)
+
+    const pivotAbs = shape.pivot ? { x: p.anchor.x + shape.pivot.x, y: p.anchor.y + shape.pivot.y } : center
+    const steepleCell = cells.reduce((best, c) => (manhattan(c, pivotAbs) < manhattan(best, pivotAbs) ? c : best), cells[0]!)
+
+    if (kind === 'office') {
+      return cells.map((cell) => ({
+        cell,
+        fill: color,
+        topFill: shadeHex(color, 1.05),
+        columnScale: 1.85,
+      }))
+    }
+
+    if (kind === 'church') {
+      return cells.map((cell) => ({
+        cell,
+        fill: color,
+        topFill: shadeHex(color, 1.06),
+        columnScale: cell.x === steepleCell.x && cell.y === steepleCell.y ? 2.9 : 1.2,
+        spire: cell.x === steepleCell.x && cell.y === steepleCell.y,
+      }))
+    }
+
+    // Default + house roof-like height variation.
+    if (kind === 'house') {
+      const w = box.maxX - box.minX
+      const h = box.maxY - box.minY
+      const ridgeAlongX = w >= h
+      const centerY = (box.minY + box.maxY) / 2
+      const centerX = (box.minX + box.maxX) / 2
+      const maxDist = ridgeAlongX
+        ? Math.max(0.0001, Math.max(Math.abs(box.minY - centerY), Math.abs(box.maxY - centerY)))
+        : Math.max(0.0001, Math.max(Math.abs(box.minX - centerX), Math.abs(box.maxX - centerX)))
+
+      return cells.map((cell) => {
+        const dist = ridgeAlongX ? Math.abs(cell.y - centerY) : Math.abs(cell.x - centerX)
+        const t = Math.max(0, Math.min(1, 1 - dist / maxDist))
+        return {
+          cell,
+          fill: color,
+          topFill: shadeHex(color, 1.08),
+          columnScale: 1.0 + 0.75 * t,
+        }
+      })
+    }
+
+    return cells.map((cell) => ({ cell, fill: color }))
   })
 
   return (
@@ -270,10 +376,64 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
         <Group x={offsetX} y={offsetY}>
           {ghost ? (
             <IsoColumnsColored
-              items={ghost.cells.map((cell) => ({
-                cell,
-                fill: ghost.ok ? selectedColor : '#eb5757',
-              }))}
+              items={((): StyledCell[] => {
+                const fill = ghost.ok ? selectedColor : '#eb5757'
+                const kind = shapeMetaById[selectedShapeId]?.building?.kind
+                const cells = ghost.cells
+                const box = bbox(cells)
+                const center = centroidCell(cells)
+                const pivotAbs = selectedShape?.pivot
+                  ? { x: hoverAnchor!.x + selectedShape.pivot.x, y: hoverAnchor!.y + selectedShape.pivot.y }
+                  : center
+                const steepleCell =
+                  cells.length > 0
+                    ? cells.reduce(
+                        (best, c) => (manhattan(c, pivotAbs) < manhattan(best, pivotAbs) ? c : best),
+                        cells[0]!,
+                      )
+                    : null
+
+                if (kind === 'office') {
+                  return cells.map((cell) => ({
+                    cell,
+                    fill,
+                    topFill: shadeHex(fill, 1.05),
+                    columnScale: 1.85,
+                  }))
+                }
+                if (kind === 'church' && steepleCell) {
+                  return cells.map((cell) => ({
+                    cell,
+                    fill,
+                    topFill: shadeHex(fill, 1.06),
+                    columnScale: cell.x === steepleCell.x && cell.y === steepleCell.y ? 2.9 : 1.2,
+                    spire: cell.x === steepleCell.x && cell.y === steepleCell.y,
+                  }))
+                }
+                if (kind === 'house') {
+                  const w = box.maxX - box.minX
+                  const h = box.maxY - box.minY
+                  const ridgeAlongX = w >= h
+                  const centerY = (box.minY + box.maxY) / 2
+                  const centerX = (box.minX + box.maxX) / 2
+                  const maxDist = ridgeAlongX
+                    ? Math.max(0.0001, Math.max(Math.abs(box.minY - centerY), Math.abs(box.maxY - centerY)))
+                    : Math.max(0.0001, Math.max(Math.abs(box.minX - centerX), Math.abs(box.maxX - centerX)))
+
+                  return cells.map((cell) => {
+                    const dist = ridgeAlongX ? Math.abs(cell.y - centerY) : Math.abs(cell.x - centerX)
+                    const t = Math.max(0, Math.min(1, 1 - dist / maxDist))
+                    return {
+                      cell,
+                      fill,
+                      topFill: shadeHex(fill, 1.08),
+                      columnScale: 1.0 + 0.75 * t,
+                    }
+                  })
+                }
+
+                return cells.map((cell) => ({ cell, fill }))
+              })()}
               metrics={metrics}
               opacity={0.35}
             />

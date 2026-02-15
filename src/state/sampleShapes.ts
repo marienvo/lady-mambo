@@ -1,9 +1,14 @@
 import type { Cell, HouseShape } from '../domain/types'
 
+export type BuildingKind = 'house' | 'church' | 'office'
+
 type ShapeMeta = Readonly<{
   id: string
   name: string
   color: string
+  building: Readonly<{
+    kind: BuildingKind
+  }>
   shape: HouseShape
 }>
 
@@ -18,8 +23,9 @@ function rectCells(width: number, height: number): Cell[] {
 export const sampleShapes: readonly ShapeMeta[] = [
   {
     id: 'house_14',
-    name: 'House 14px (5×4)',
+    name: 'House',
     color: '#27ae60',
+    building: { kind: 'house' },
     shape: {
       id: 'house_14',
       // Pattern:
@@ -48,8 +54,9 @@ export const sampleShapes: readonly ShapeMeta[] = [
   },
   {
     id: 'tetris_t',
-    name: 'T-shape (demo)',
-    color: '#9b51e0',
+    name: 'Church',
+    color: '#9b51e0', // purple-ish for now
+    building: { kind: 'church' },
     shape: {
       id: 'tetris_t',
       cells: [
@@ -63,8 +70,9 @@ export const sampleShapes: readonly ShapeMeta[] = [
   },
   {
     id: 'house_12',
-    name: 'House 12px (4×3)',
+    name: 'Office',
     color: '#2f80ed',
+    building: { kind: 'office' },
     shape: {
       id: 'house_12',
       cells: rectCells(4, 3), // 12 pixels

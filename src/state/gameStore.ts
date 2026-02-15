@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { occupiedKeysForPlacements } from '../domain/occupied'
 import { canPlace } from '../domain/placement'
 import type { Cell, Grid, HouseShape, Placement, Rotation } from '../domain/types'
+import type { BuildingKind } from './sampleShapes'
 import { sampleShapes } from './sampleShapes'
 
 export type Placed = Placement &
@@ -17,6 +18,9 @@ type ShapeMetaById = Readonly<
       id: string
       name: string
       color: string
+      building?: Readonly<{
+        kind: BuildingKind
+      }>
     }>
   >
 >
@@ -44,11 +48,19 @@ type GameActions = Readonly<{
 
 function buildShapes() {
   const shapesById: Record<string, HouseShape> = {}
-  const shapeMetaById: Record<string, { id: string; name: string; color: string }> = {}
+  const shapeMetaById: Record<
+    string,
+    { id: string; name: string; color: string; building?: { kind: BuildingKind } }
+  > = {}
 
   for (const meta of sampleShapes) {
     shapesById[meta.id] = meta.shape
-    shapeMetaById[meta.id] = { id: meta.id, name: meta.name, color: meta.color }
+    shapeMetaById[meta.id] = {
+      id: meta.id,
+      name: meta.name,
+      color: meta.color,
+      building: meta.building,
+    }
   }
 
   return { shapesById, shapeMetaById }
