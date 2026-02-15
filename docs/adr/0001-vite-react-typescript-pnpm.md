@@ -13,6 +13,7 @@ We bouwen een browser game met canvas rendering en veel iteratieve UI/interactio
 - React als UI framework.
 - TypeScript als taal.
 - pnpm als package manager.
+- Node.js 24+ als runtime baseline.
 
 ## Consequences
 

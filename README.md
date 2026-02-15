@@ -14,7 +14,7 @@ Open een terminal in de projectmap en run:
 node -v
 ```
 
-Dit project werkt met **Node 20+**.
+Dit project werkt met **Node 24+**.
 
 Als je Node nog niet hebt: installeer het via bijvoorbeeld Node Version Manager (nvm) of de officiële Node installer.
 
