@@ -60,10 +60,6 @@ export function App() {
               Clear
             </button>
           </div>
-
-          <div className="hint hintInline">
-            <p>Move mouse to snap. Click to place. Out-of-bounds is always invalid.</p>
-          </div>
         </section>
 
         <section className="canvasPanel">

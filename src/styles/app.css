@@ -105,12 +105,3 @@
   justify-content: center;
   min-width: 0;
 }
-
-.hint {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.hintInline {
-  margin-left: auto;
-}
