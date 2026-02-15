@@ -28,7 +28,7 @@ export function App() {
     <div className="app">
       <header className="appHeader">
         <h1 className="appTitle">Lady Mambo</h1>
-        <p className="appSubtitle">Grid-based house builder (Konva + Zustand)</p>
+        <p className="appSubtitle">React + Konva + Zustand</p>
       </header>
 
       <main className="appMain">
