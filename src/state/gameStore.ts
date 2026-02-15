@@ -105,7 +105,15 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   selectedPlacementId: null,
   moveCandidateAnchor: null,
 
-  selectShape: (shapeId) => set({ selectedShapeId: shapeId }),
+  selectShape: (shapeId) =>
+    set((state) => ({
+      ...state,
+      selectedShapeId: shapeId,
+      // Changing the building type implies we're going back to placement.
+      placeEnabled: true,
+      selectedPlacementId: null,
+      moveCandidateAnchor: null,
+    })),
   rotate: (delta = 90) =>
     set((state) => ({
       rotation: normalizeRotation(state.rotation + delta),

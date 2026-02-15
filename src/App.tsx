@@ -1,6 +1,6 @@
 import './styles/app.css'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useGameStore } from './state/gameStore'
 import { SquareCanvasViewport } from './ui/canvas/SquareCanvasViewport'
@@ -18,14 +18,29 @@ export function App() {
   const selectPlacement = useGameStore((s) => s.selectPlacement)
   const deleteSelectedPlacement = useGameStore((s) => s.deleteSelectedPlacement)
   const setPlaceEnabled = useGameStore((s) => s.setPlaceEnabled)
+  const cancelMove = useGameStore((s) => s.cancelMove)
+
+  const [showEscHint, setShowEscHint] = useState(false)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'r') rotate(90)
+      if (e.key === 'Escape') {
+        cancelMove()
+        selectPlacement(null)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [rotate])
+  }, [cancelMove, rotate, selectPlacement])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: fine) and (hover: hover)')
+    const update = () => setShowEscHint(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   const shapeOptions = Object.values(shapeMetaById)
 
@@ -42,7 +57,10 @@ export function App() {
             <select
               className="fieldControl"
               value={selectedShapeId}
-              onChange={(e) => selectShape(e.target.value)}
+              onChange={(e) => {
+                selectShape(e.target.value)
+                setPlaceEnabled(true)
+              }}
             >
               {shapeOptions.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -73,9 +91,9 @@ export function App() {
               className="button"
               type="button"
               onClick={deleteSelectedPlacement}
-              disabled={!selectedPlacementId}
-              aria-disabled={!selectedPlacementId}
-              title={selectedPlacementId ? undefined : 'Select a building first'}
+              disabled={placeEnabled || !selectedPlacementId}
+              aria-disabled={placeEnabled || !selectedPlacementId}
+              title={placeEnabled ? 'Switch to Select mode to delete' : selectedPlacementId ? undefined : 'Select a building first'}
             >
               Delete
             </button>
@@ -83,10 +101,10 @@ export function App() {
               className="button buttonSecondary"
               type="button"
               onClick={() => selectPlacement(null)}
-              disabled={!selectedPlacementId}
-              aria-disabled={!selectedPlacementId}
+              disabled={placeEnabled || !selectedPlacementId}
+              aria-disabled={placeEnabled || !selectedPlacementId}
             >
-              Deselect
+              {showEscHint ? 'Deselect (Esc)' : 'Deselect'}
             </button>
             <button
               className="button buttonSecondary"

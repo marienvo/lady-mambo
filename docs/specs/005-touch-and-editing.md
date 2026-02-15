@@ -24,6 +24,7 @@ Zie ook:
 - Toolbar-acties (ook op desktop):
   - **Delete**: geselecteerd item verwijderen (disabled by default).
 - Bestaande placement flow blijft werken: ghost preview + snap + validatie via `canPlace`.
+ - Wanneer de speler het **building type** (dropdown) wijzigt, schakelen we automatisch terug naar **Place**.
 
 ## Non-goals
 
@@ -43,6 +44,7 @@ Zie ook:
 - Alleen wanneer **Place uit** staat:
   - Tap/click op een tile die door een placement bezet is → selecteer die placement.
   - Tap/click op lege tile → deselect.
+- Keyboard: `Esc` deselect (desktop).
 - Selectie blijft behouden totdat:
   - user op andere placement tapt/clickt, of
   - user `Delete` gebruikt, of
@@ -60,6 +62,7 @@ Zie ook:
 ### Delete
 
 - `Delete` knop verwijdert de geselecteerde placement (disabled by default).
+- In **Place** mode zijn `Delete` en `Deselect` disabled.
 - Na delete is er geen selectie.
 
 ## Data model

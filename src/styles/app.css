@@ -82,6 +82,12 @@
   cursor: pointer;
 }
 
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: saturate(0.5);
+}
+
 .buttonSecondary {
   opacity: 0.85;
 }
