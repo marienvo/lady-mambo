@@ -34,7 +34,6 @@ export function App() {
       <main className="appMain">
         <section className="toolsBar">
           <label className="field fieldInline">
-            <span className="fieldLabel">Shape</span>
             <select
               className="fieldControl"
               value={selectedShapeId}
