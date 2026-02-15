@@ -15,7 +15,7 @@
     "format": "prettier . --write",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "deploy": "pnpm build && surge dist lady-mambo.marienvanoverbeek.nl"
+    "surge": "pnpm build && surge dist lady-mambo.marienvanoverbeek.nl"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
