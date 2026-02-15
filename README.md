@@ -4,6 +4,8 @@
 
 Een kleine grid-based “huizen bouwen” game in React + TypeScript met canvas rendering (Konva) en state (Zustand).
 
+> Nog nooit met Git gewerkt? Check `docs/how-to-pull.md`: [project clonen + updaten (Linux/macOS/Windows)](docs/how-to-pull.md)
+
 ## Getting started
 
 ### 1) Check Node.js versie
