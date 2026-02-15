@@ -1,0 +1,15 @@
+---
+description: Core workflow (spec-driven + ADRs)
+alwaysApply: true
+---
+
+# Workflow
+- Werk **spec-driven**: nieuwe feature → eerst spec in `docs/specs/` (of update bestaande).
+- Structurele keuze → eerst ADR in `docs/adr/` (status + consequences).
+- Hou docs synchroon met code: spec/ADR aanpassen bij behavior/architectuur changes.
+
+# Engineering defaults
+- Domeinregels (grid/placement/collision/rotatie) zijn **pure functions** in `src/domain/`.
+- UI/canvas is “dumb”: geen game rules in React/Konva components.
+- Schrijf unit tests voor domeinregels (Vitest) voordat je UI wiring doet.
+

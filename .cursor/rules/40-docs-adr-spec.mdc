@@ -1,0 +1,15 @@
+---
+description: Docs conventions (specs + ADRs)
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Specs (`docs/specs/`)
+- Schrijf goals/non-goals en een test plan.
+- Noteer invariants (wat mag nooit gebeuren).
+
+# ADRs (`docs/adr/`)
+- Status + datum verplicht.
+- Schrijf context + decision + consequences + alternatives.
+- Update status naar `superseded` wanneer vervangen.
+

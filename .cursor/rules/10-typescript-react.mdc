@@ -1,0 +1,19 @@
+---
+description: TypeScript + React conventions
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript
+- Prefer `type` over `interface` (tenzij je extension/merging nodig hebt).
+- Houd types serializable in state (zeker in Zustand).
+- Geen `any`; gebruik small, composable types.
+
+# React
+- Function components only.
+- Zet domeinlogica in hooks of domain modules, niet inline in components.
+- CSS: simple, colocated (`src/styles/*` of component-level).
+
+# Imports
+- Imports moeten gesorteerd zijn (autofix via ESLint).
+

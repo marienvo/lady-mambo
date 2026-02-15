@@ -1,0 +1,15 @@
+---
+description: Vitest + test patterns
+globs: **/*.{test,spec}.{ts,tsx}
+alwaysApply: false
+---
+
+# Tests
+- Focus: **pure domain unit tests** (geen canvas nodig).
+- AAA pattern (Arrange/Act/Assert) en duidelijke testnamen.
+- Test invariants expliciet: out-of-bounds is altijd invalid, overlap is invalid.
+
+# Vitest
+- Gebruik `describe/it/expect` uit `vitest`.
+- Vermijd flaky timing; liever pure functies dan timers/mocks.
+

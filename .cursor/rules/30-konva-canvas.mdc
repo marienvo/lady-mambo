@@ -1,0 +1,15 @@
+---
+description: react-konva / canvas conventions
+globs: src/ui/canvas/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Canvas rendering
+- Canvas components render **state**, they do not decide validity.
+- Pointer→grid mapping via helper (geen magic numbers).
+- Layering: grid → placed → ghost.
+
+# Interaction
+- Commit placement alleen als `canPlace(...).ok === true`.
+- Ghost kleur is afgeleid van `canPlace` resultaat.
+

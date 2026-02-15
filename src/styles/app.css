@@ -1,0 +1,91 @@
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.appHeader {
+  padding: 24px 20px;
+  border-bottom: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
+}
+
+.appTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.appSubtitle {
+  margin: 6px 0 0;
+  opacity: 0.8;
+}
+
+.appMain {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.panel {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
+}
+
+.panelTitle {
+  margin: 0 0 12px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.fieldControl {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
+  background: Canvas;
+  color: CanvasText;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
+  background: Canvas;
+  color: CanvasText;
+  cursor: pointer;
+}
+
+.buttonSecondary {
+  opacity: 0.85;
+}
+
+.canvasPanel {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas 82%);
+  overflow: auto;
+}
+
+.hint {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.8;
+}
