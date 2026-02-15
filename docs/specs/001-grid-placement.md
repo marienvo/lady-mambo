@@ -22,11 +22,13 @@ Zie ook:
 
 ## UX / Interactie
 
-- Pointer move: bereken `anchorCell` uit stage coord → grid coord.
+- Pointer move (mouse + touch): bereken `anchorCell` uit stage coord → grid coord.
 - Ghost preview:
   - groen: `canPlace.ok === true`
   - rood: `canPlace.ok === false` (reason zichtbaar voor debug)
-- Click / drop: alleen plaatsen als `canPlace.ok === true`.
+- Click / tap / drop:
+  - Alleen plaatsen als `canPlace.ok === true`.
+  - Select/move/delete gebeurt alleen wanneer **Place** uit staat (zie spec 005).
 
 ## Data model
 

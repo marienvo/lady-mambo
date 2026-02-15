@@ -9,10 +9,15 @@ export function App() {
   const shapeMetaById = useGameStore((s) => s.shapeMetaById)
   const selectedShapeId = useGameStore((s) => s.selectedShapeId)
   const rotation = useGameStore((s) => s.rotation)
+  const selectedPlacementId = useGameStore((s) => s.selectedPlacementId)
+  const placeEnabled = useGameStore((s) => s.placeEnabled)
 
   const selectShape = useGameStore((s) => s.selectShape)
   const rotate = useGameStore((s) => s.rotate)
   const clearPlacements = useGameStore((s) => s.clearPlacements)
+  const selectPlacement = useGameStore((s) => s.selectPlacement)
+  const deleteSelectedPlacement = useGameStore((s) => s.deleteSelectedPlacement)
+  const setPlaceEnabled = useGameStore((s) => s.setPlaceEnabled)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -48,8 +53,36 @@ export function App() {
           </label>
 
           <div className="row">
+            <button
+              className="button"
+              type="button"
+              onClick={() => setPlaceEnabled(!placeEnabled)}
+              aria-pressed={placeEnabled}
+              title={placeEnabled ? 'Place mode: tap to place' : 'Edit mode: drag buildings to move'}
+            >
+              Place: {placeEnabled ? 'On' : 'Off'}
+            </button>
             <button className="button" type="button" onClick={() => rotate(90)}>
               Rotate (R) — {rotation}°
+            </button>
+            <button
+              className="button"
+              type="button"
+              onClick={deleteSelectedPlacement}
+              disabled={!selectedPlacementId}
+              aria-disabled={!selectedPlacementId}
+              title={selectedPlacementId ? undefined : 'Select a building first'}
+            >
+              Delete
+            </button>
+            <button
+              className="button buttonSecondary"
+              type="button"
+              onClick={() => selectPlacement(null)}
+              disabled={!selectedPlacementId}
+              aria-disabled={!selectedPlacementId}
+            >
+              Deselect
             </button>
             <button
               className="button buttonSecondary"

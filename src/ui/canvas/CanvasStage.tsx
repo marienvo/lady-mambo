@@ -1,4 +1,5 @@
 import { Group, Layer, Line, Stage } from 'react-konva'
+import { useMemo, useRef } from 'react'
 
 import { occupiedKeysForPlacements } from '../../domain/occupied'
 import { depthKeyForCell, gridToIsoCenter, type IsoMetrics } from '../../domain/isometric'
@@ -229,9 +230,22 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
   const selectedShapeId = useGameStore((s) => s.selectedShapeId)
   const rotation = useGameStore((s) => s.rotation)
   const hoverAnchor = useGameStore((s) => s.hoverAnchor)
+  const placeEnabled = useGameStore((s) => s.placeEnabled)
+  const selectedPlacementId = useGameStore((s) => s.selectedPlacementId)
+  const moveCandidateAnchor = useGameStore((s) => s.moveCandidateAnchor)
 
   const setHoverAnchor = useGameStore((s) => s.setHoverAnchor)
   const tryPlaceAtHover = useGameStore((s) => s.tryPlaceAtHover)
+  const placementIdAtCell = useGameStore((s) => s.placementIdAtCell)
+  const selectPlacement = useGameStore((s) => s.selectPlacement)
+  const setMoveCandidateAnchor = useGameStore((s) => s.setMoveCandidateAnchor)
+  const commitMoveTo = useGameStore((s) => s.commitMoveTo)
+  const cancelMove = useGameStore((s) => s.cancelMove)
+
+  const draggingRef = useRef(false)
+  const isEditing = !placeEnabled
+  // Derive moving state from store (so it re-renders correctly).
+  const isMoving = isEditing && moveCandidateAnchor != null && selectedPlacementId != null
 
   const span = grid.width + grid.height
   const tileW = Math.max(8, Math.floor((stageSize * 1.8) / Math.max(1, span)))
@@ -266,6 +280,11 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
   const offsetX = Math.floor(margin + (availW - boundsW) / 2 - minX)
   const offsetY = Math.floor(margin + (availH - boundsH) / 2 - minY)
 
+  const movingPlacement = useMemo(() => {
+    if (!isMoving) return null
+    return placements.find((p) => p.id === selectedPlacementId) ?? null
+  }, [isMoving, placements, selectedPlacementId])
+
   const placementsForDomain: Placement[] = placements.map((p) => ({
     shapeId: p.shapeId,
     anchor: p.anchor,
@@ -277,7 +296,7 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
   const selectedColor = shapeMetaById[selectedShapeId]?.color ?? '#2f80ed'
 
   const hoverPlacement =
-    hoverAnchor && selectedShape
+    placeEnabled && hoverAnchor && selectedShape
       ? ({ shapeId: selectedShapeId, anchor: hoverAnchor, rotation } satisfies Placement)
       : null
 
@@ -286,7 +305,26 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
       ? canPlace(grid, occupied, selectedShape, hoverPlacement)
       : null
 
+  const movingGhost = useMemo(() => {
+    if (!movingPlacement || !moveCandidateAnchor) return null
+    const shape = shapesById[movingPlacement.shapeId]
+    if (!shape) return null
+    const occupiedExclSelf = occupiedKeysForPlacements(
+      shapesById,
+      placements
+        .filter((p) => p.id !== movingPlacement.id)
+        .map((p) => ({ shapeId: p.shapeId, anchor: p.anchor, rotation: p.rotation })),
+    )
+    const candidate: Placement = {
+      shapeId: movingPlacement.shapeId,
+      anchor: moveCandidateAnchor,
+      rotation: movingPlacement.rotation,
+    }
+    return canPlace(grid, occupiedExclSelf, shape, candidate)
+  }, [grid, moveCandidateAnchor, movingPlacement, placements, shapesById])
+
   const placedItems: StyledCell[] = placements.flatMap((p) => {
+    if (moveCandidateAnchor != null && p.id === selectedPlacementId) return []
     const shape = shapesById[p.shapeId]
     if (!shape) return []
     const color = shapeMetaById[p.shapeId]?.color ?? '#2f80ed'
@@ -344,21 +382,86 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
     return cells.map((cell) => ({ cell, fill: color }))
   })
 
+  const selectedOutlineCells = useMemo(() => {
+    if (!selectedPlacementId) return []
+    if (moveCandidateAnchor != null) return []
+    const p = placements.find((x) => x.id === selectedPlacementId)
+    if (!p) return []
+    const shape = shapesById[p.shapeId]
+    if (!shape) return []
+    return absoluteCells(shape, p)
+  }, [moveCandidateAnchor, placements, selectedPlacementId, shapesById])
+
   return (
     <Stage
       width={stageSize}
       height={stageSize}
-      onMouseMove={(e) => {
-        const pos = e.target.getStage()?.getPointerPosition()
+      onPointerMove={(e) => {
+        const stage = e.target.getStage()
+        const pos = stage?.getPointerPosition()
         if (!pos) return
         const pointerCell = pointerToCellIso(pos, metrics, offsetX, offsetY)
+
+        if (isEditing) {
+          if (!draggingRef.current) return
+          const p = placements.find((x) => x.id === selectedPlacementId)
+          const pivot = (p && shapesById[p.shapeId]?.pivot) ?? { x: 0, y: 0 }
+          setMoveCandidateAnchor({ x: pointerCell.x - pivot.x, y: pointerCell.y - pivot.y })
+          return
+        }
+
         const pivot = selectedShape?.pivot ?? { x: 0, y: 0 }
         // Keep the cursor on the shape's pivot (roughly its center).
         setHoverAnchor({ x: pointerCell.x - pivot.x, y: pointerCell.y - pivot.y })
       }}
-      onMouseLeave={() => setHoverAnchor(null)}
-      onClick={() => tryPlaceAtHover()}
-      style={{ background: 'rgba(127,127,127,0.06)', borderRadius: 12 }}
+      onPointerLeave={() => {
+        setHoverAnchor(null)
+        draggingRef.current = false
+        cancelMove()
+      }}
+      onPointerDown={(e) => {
+        const stage = e.target.getStage()
+        const pos = stage?.getPointerPosition()
+        if (!pos) return
+        const pointerCell = pointerToCellIso(pos, metrics, offsetX, offsetY)
+
+        if (isEditing) {
+          const hitId = placementIdAtCell(pointerCell)
+          if (!hitId) {
+            draggingRef.current = false
+            cancelMove()
+            selectPlacement(null)
+            return
+          }
+
+          selectPlacement(hitId)
+          draggingRef.current = true
+          const p = placements.find((x) => x.id === hitId)
+          const pivot = (p && shapesById[p.shapeId]?.pivot) ?? { x: 0, y: 0 }
+          setMoveCandidateAnchor({ x: pointerCell.x - pivot.x, y: pointerCell.y - pivot.y })
+          return
+        }
+
+        // Place mode
+        const pivot = selectedShape?.pivot ?? { x: 0, y: 0 }
+        setHoverAnchor({ x: pointerCell.x - pivot.x, y: pointerCell.y - pivot.y })
+        tryPlaceAtHover()
+      }}
+      onPointerUp={() => {
+        if (!draggingRef.current) return
+        draggingRef.current = false
+        if (!moveCandidateAnchor) {
+          cancelMove()
+          return
+        }
+        // Store will validate and either commit or cancel.
+        commitMoveTo(moveCandidateAnchor)
+      }}
+      onPointerCancel={() => {
+        draggingRef.current = false
+        cancelMove()
+      }}
+      style={{ background: 'rgba(127,127,127,0.06)', borderRadius: 12, touchAction: 'none' }}
     >
       <Layer>
         <Group x={offsetX} y={offsetY}>
@@ -371,6 +474,22 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
           <IsoColumnsColored items={placedItems} metrics={metrics} />
         </Group>
       </Layer>
+
+      {selectedOutlineCells.length > 0 ? (
+        <Layer>
+          <Group x={offsetX} y={offsetY}>
+            {selectedOutlineCells.map((cell) => (
+              <Line
+                key={`sel-${cell.x},${cell.y}`}
+                points={diamondPoints(cellToScreenIso(cell, metrics), metrics)}
+                closed
+                stroke="rgba(0, 0, 0, 0.55)"
+                strokeWidth={2}
+              />
+            ))}
+          </Group>
+        </Layer>
+      ) : null}
 
       <Layer>
         <Group x={offsetX} y={offsetY}>
@@ -440,6 +559,82 @@ export function CanvasStage({ stageSize }: { stageSize: number }) {
           ) : null}
         </Group>
       </Layer>
+
+      {movingGhost && movingPlacement && moveCandidateAnchor ? (
+        <Layer>
+          <Group x={offsetX} y={offsetY}>
+            <IsoColumnsColored
+              items={((): StyledCell[] => {
+                const shape = shapesById[movingPlacement.shapeId]
+                if (!shape) return []
+                const baseColor = shapeMetaById[movingPlacement.shapeId]?.color ?? '#2f80ed'
+                const fill = movingGhost.ok ? baseColor : '#eb5757'
+                const kind = shapeMetaById[movingPlacement.shapeId]?.building?.kind
+                const candidate: Placement = {
+                  shapeId: movingPlacement.shapeId,
+                  anchor: moveCandidateAnchor,
+                  rotation: movingPlacement.rotation,
+                }
+                const cells = absoluteCells(shape, candidate)
+                const box = bbox(cells)
+                const center = centroidCell(cells)
+                const pivotAbs = shape.pivot
+                  ? { x: candidate.anchor.x + shape.pivot.x, y: candidate.anchor.y + shape.pivot.y }
+                  : center
+                const steepleCell =
+                  cells.length > 0
+                    ? cells.reduce(
+                        (best, c) => (manhattan(c, pivotAbs) < manhattan(best, pivotAbs) ? c : best),
+                        cells[0]!,
+                      )
+                    : null
+
+                if (kind === 'office') {
+                  return cells.map((cell) => ({
+                    cell,
+                    fill,
+                    topFill: shadeHex(fill, 1.05),
+                    columnScale: 1.85,
+                  }))
+                }
+                if (kind === 'church' && steepleCell) {
+                  return cells.map((cell) => ({
+                    cell,
+                    fill,
+                    topFill: shadeHex(fill, 1.06),
+                    columnScale: cell.x === steepleCell.x && cell.y === steepleCell.y ? 2.9 : 1.2,
+                    spire: cell.x === steepleCell.x && cell.y === steepleCell.y,
+                  }))
+                }
+                if (kind === 'house') {
+                  const w = box.maxX - box.minX
+                  const h = box.maxY - box.minY
+                  const ridgeAlongX = w >= h
+                  const centerY = (box.minY + box.maxY) / 2
+                  const centerX = (box.minX + box.maxX) / 2
+                  const maxDist = ridgeAlongX
+                    ? Math.max(0.0001, Math.max(Math.abs(box.minY - centerY), Math.abs(box.maxY - centerY)))
+                    : Math.max(0.0001, Math.max(Math.abs(box.minX - centerX), Math.abs(box.maxX - centerX)))
+                  return cells.map((cell) => {
+                    const dist = ridgeAlongX ? Math.abs(cell.y - centerY) : Math.abs(cell.x - centerX)
+                    const t = Math.max(0, Math.min(1, 1 - dist / maxDist))
+                    return {
+                      cell,
+                      fill,
+                      topFill: shadeHex(fill, 1.08),
+                      columnScale: 1.0 + 0.75 * t,
+                    }
+                  })
+                }
+
+                return cells.map((cell) => ({ cell, fill }))
+              })()}
+              metrics={metrics}
+              opacity={0.55}
+            />
+          </Group>
+        </Layer>
+      ) : null}
     </Stage>
   )
 }

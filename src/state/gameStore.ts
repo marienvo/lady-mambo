@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 
+import { findPlacementIdAtCell } from '../domain/selection'
 import { occupiedKeysForPlacements } from '../domain/occupied'
 import { canPlace } from '../domain/placement'
 import type { Cell, Grid, HouseShape, Placement, Rotation } from '../domain/types'
@@ -34,16 +35,29 @@ type GameState = Readonly<{
   selectedShapeId: string
   rotation: Rotation
   hoverAnchor: Cell | null
+  placeEnabled: boolean
 
   placements: readonly Placed[]
+
+  selectedPlacementId: string | null
+  moveCandidateAnchor: Cell | null
 }>
 
 type GameActions = Readonly<{
   selectShape: (shapeId: string) => void
   rotate: (delta?: Rotation) => void
   setHoverAnchor: (anchor: Cell | null) => void
+  setPlaceEnabled: (enabled: boolean) => void
   tryPlaceAtHover: () => void
   clearPlacements: () => void
+
+  placementIdAtCell: (cell: Cell) => string | null
+  selectPlacement: (id: string | null) => void
+  deleteSelectedPlacement: () => void
+
+  cancelMove: () => void
+  setMoveCandidateAnchor: (anchor: Cell | null) => void
+  commitMoveTo: (anchor: Cell) => void
 }>
 
 function buildShapes() {
@@ -84,8 +98,12 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   selectedShapeId: sampleShapes[0]?.id ?? 'house_12',
   rotation: 0,
   hoverAnchor: null,
+  placeEnabled: true,
 
   placements: [],
+
+  selectedPlacementId: null,
+  moveCandidateAnchor: null,
 
   selectShape: (shapeId) => set({ selectedShapeId: shapeId }),
   rotate: (delta = 90) =>
@@ -93,9 +111,19 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
       rotation: normalizeRotation(state.rotation + delta),
     })),
   setHoverAnchor: (hoverAnchor) => set({ hoverAnchor }),
+  setPlaceEnabled: (enabled) =>
+    set((state) => ({
+      ...state,
+      placeEnabled: enabled,
+      // Switching modes should avoid mixing states.
+      hoverAnchor: enabled ? state.hoverAnchor : null,
+      selectedPlacementId: enabled ? null : state.selectedPlacementId,
+      moveCandidateAnchor: null,
+    })),
 
   tryPlaceAtHover: () =>
     set((state) => {
+      if (!state.placeEnabled) return state
       if (!state.hoverAnchor) return state
       const shape = state.shapesById[state.selectedShapeId]
       if (!shape) return state
@@ -122,5 +150,59 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
       return { ...state, placements: [...state.placements, placed] }
     }),
 
-  clearPlacements: () => set({ placements: [] }),
+  clearPlacements: () => set({ placements: [], selectedPlacementId: null, moveCandidateAnchor: null }),
+
+  placementIdAtCell: (cell) => {
+    const state = useGameStore.getState()
+    return findPlacementIdAtCell(state.shapesById, state.placements, cell)
+  },
+
+  selectPlacement: (id) => set({ selectedPlacementId: id, moveCandidateAnchor: null }),
+
+  deleteSelectedPlacement: () =>
+    set((state) => {
+      if (!state.selectedPlacementId) return state
+      return {
+        ...state,
+        placements: state.placements.filter((p) => p.id !== state.selectedPlacementId),
+        selectedPlacementId: null,
+        moveCandidateAnchor: null,
+      }
+    }),
+
+  cancelMove: () => set({ moveCandidateAnchor: null }),
+
+  setMoveCandidateAnchor: (anchor) => set({ moveCandidateAnchor: anchor }),
+
+  commitMoveTo: (anchor) =>
+    set((state) => {
+      const id = state.selectedPlacementId
+      if (!id) return state
+      const idx = state.placements.findIndex((p) => p.id === id)
+      if (idx < 0) return { ...state, selectedPlacementId: null, moveCandidateAnchor: null }
+
+      const current = state.placements[idx]!
+      const shape = state.shapesById[current.shapeId]
+      if (!shape) return state
+
+      const occupied = occupiedKeysForPlacements(
+        state.shapesById,
+        state.placements
+          .filter((p) => p.id !== id)
+          .map((p) => ({ shapeId: p.shapeId, anchor: p.anchor, rotation: p.rotation })),
+      )
+
+      const candidate: Placement = {
+        shapeId: current.shapeId,
+        anchor,
+        rotation: current.rotation,
+      }
+      const result = canPlace(state.grid, occupied, shape, candidate)
+      if (!result.ok) return { ...state, moveCandidateAnchor: null }
+
+      const updated: Placed = { ...current, anchor }
+      const next = [...state.placements]
+      next[idx] = updated
+      return { ...state, placements: next, moveCandidateAnchor: null }
+    }),
 }))
