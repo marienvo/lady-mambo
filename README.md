@@ -1,6 +1,6 @@
 # Lady Mambo
 
-Live demo: `https://lady-mambo.marienvanoverbeek.nl/`
+[Live demo](https://lady-mambo.marienvanoverbeek.nl/)
 
 Een kleine grid-based “huizen bouwen” game in React + TypeScript met canvas rendering (Konva) en state (Zustand).
 
